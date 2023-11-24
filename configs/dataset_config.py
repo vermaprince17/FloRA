@@ -20,7 +20,7 @@ visual_datasets = [
         ann_paths=[
             "data/aokvqa/annotations/aokvqa_v1p0_train.json",
         ],
-        sample= 8192, # training 4096 samples subset out of total 17k+ samples
+        sample= 512, # training 4096 samples subset out of total 17k+ samples
     ),
     # dict(
     #     type="minigpt4",

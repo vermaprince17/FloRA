@@ -177,7 +177,7 @@ def main():
         vis_processor=image_processor,
         tokenizer=tokenizer,
     )
-    print("TOTAL DATAPOINTS FOR TRAINING: ", len(dataset))
+    print("TOTAL DATAPOINTS FOR VISION + LANG TRAINING: ", len(dataset))
     
     train_dataloader = DataLoader(
         dataset,
@@ -193,6 +193,8 @@ def main():
             dataset_config=dataset_config.language_datasets,
             tokenizer=tokenizer,
         )
+        print("TOTAL DATAPOINTS FOR LANG TRAINING: ", len(lang_dataset))
+
         lang_dataloader = DataLoader(
             lang_dataset,
             batch_size=args.batch_size,
@@ -219,7 +221,7 @@ def main():
     device_id = args.rank % torch.cuda.device_count()
     model = model.to(device_id)
 
-    ddp_model = DDP(model, device_ids=[device_id], find_unused_parameters=False)#True)
+    ddp_model = DDP(model, device_ids=[device_id], find_unused_parameters=True)
 
     def get_grouped_params(model):
         params_with_wd, params_without_wd = [], []
@@ -277,6 +279,7 @@ def main():
             print(f"Found checkpoint {args.resume_from_checkpoint} for run {args.run_name}.")
 
     resume_from_epoch = 0
+    resume_from_step = 0
     if args.resume_from_checkpoint is not None:
         if args.rank == 0:
             print(f"Loading checkpoint from {args.resume_from_checkpoint}")
