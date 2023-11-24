@@ -49,7 +49,7 @@ visual_datasets = [
     # ),
 ]
 
-# language_datasets = [
+language_datasets = [
 #     dict(
 #         type="dolly",
 #         ann_path="data/dolly/databricks-dolly-15k.jsonl",
@@ -62,4 +62,8 @@ visual_datasets = [
 #         type="baize",
 #         ann_path="data/baize/quora_chat_data.json",
 #     ),
-# ]
+    dict(
+        type="pubmedqa",
+        ann_path="data/pubmedqa/ori_pqal.json"
+    )
+]

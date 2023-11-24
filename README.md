@@ -149,6 +149,10 @@ You can also customize the data path in the [configs/dataset_config.py](configs/
 
     Download it from [this link](https://github.com/project-baize/baize-chatbot/blob/main/data/quora_chat_data.json) and place it in `data/baize/quora_chat_data.json`.
 
+9. [PubMedQA](https://github.com/pubmedqa/pubmedqa) 
+    
+    Download it from [this link](https://raw.githubusercontent.com/pubmedqa/pubmedqa/master/data/ori_pqal.json) and place it in `data/pubmedqa/ori_pqal.json`.
+
 
 ## Start training
 
