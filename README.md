@@ -4,15 +4,7 @@ Train a multi-modal chatbot with visual and language instructions!
 
 Based on the open-source multi-modal model [OpenFlamingo](https://github.com/mlfoundations/open_flamingo), we create various **visual instruction** data with open datasets, including VQA, Image Captioning, Visual Reasoning, Text OCR, and Visual Dialogue. Additionally, we also train the language model component of OpenFlamingo using only **language-only instruction** data.
 
-The **joint training** of visual and language instructions effectively improves the performance of the model! For more details please refer to our [technical report](https://arxiv.org/abs/2305.04790).
-
-Welcome to join us!
-
-</div>
-
-<div align="center">
-
-</div>
+The **joint training** of visual and language instructions effectively improves the performance of the model!
 
 ## Features
 
