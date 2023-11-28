@@ -20,25 +20,15 @@ from sklearn.metrics import roc_auc_score
 import utils
 import math
 
-from eval_datasets import (
-    CaptionDataset,
-    VQADataset,
-    ImageNetDataset,
-    HatefulMemesDataset,
-)
-from rices import RICES
+from eval_datasets import VQADataset
+
 from tqdm import tqdm
 
 
-from classification_utils import (
-    IMAGENET_CLASSNAMES,
-    HM_CLASSNAMES,
-)
-
-from open_flamingo.src.flamingo import Flamingo
+from mmgpt.models.open_flamingo.flamingo import Flamingo
 from vqa_metric import compute_vqa_accuracy, postprocess_vqa_generation
 
-from open_flamingo.train.distributed import init_distributed_device, world_info_from_env
+from mmgpt.train.distributed import init_distributed_device, world_info_from_env
 
 parser = argparse.ArgumentParser()
 
@@ -89,23 +79,7 @@ parser.add_argument(
     action="store_true",
     help="Whether to use prompt ensembling (average log-likelihoods over permutations of in-context examples)",
 )
-parser.add_argument(
-    "--rices",
-    action="store_true",
-    help="Whether to use RICES for evaluation. If False, uses random demonstrations.",
-)
-parser.add_argument(
-    "--rices_vision_encoder_path",
-    default="ViT-L-14",
-    type=str,
-    help="CLIP vision encoder to use for RICES if cached_demonstration_features is None.",
-)
-parser.add_argument(
-    "--rices_vision_encoder_pretrained",
-    default="openai",
-    type=str,
-    help="CLIP vision encoder to use for RICES if cached_demonstration_features is None.",
-)
+
 parser.add_argument(
     "--cached_demonstration_features",
     default=None,
@@ -182,85 +156,11 @@ parser.add_argument(
 )
 
 
-def main():
-    args, leftovers = parser.parse_known_args()
-    print(args)
-    module = importlib.import_module(f"open_flamingo.eval.models.{args.model}")
-    print(leftovers)
-    model_args = {
-        leftovers[i].lstrip("-"): leftovers[i + 1] for i in range(0, len(leftovers), 2)
-    }
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(torch.cuda.get_device_name(device))
-    memory_stats =torch.cuda.memory_stats()
-    total_memory = torch.cuda.get_device_properties(device).total_memory
-    available_memory = total_memory - memory_stats["allocated_bytes.all.current"]
-    
-    # Print the result
-    print(f"Available GPU memory: {available_memory / 1024**3:.2f} GB")
-    model_args['device']=device
-    if args.mmgpt:
-        eval_model=module.EvalModel(model_args,pretrained_flam="/content/open_flamingo/checkpoint.pt")
-    else:
-        eval_model = module.EvalModel(model_args)
-
-    # set up distributed evaluation
-    args.local_rank, args.rank, args.world_size = world_info_from_env()
-
-    if args.model != "open_flamingo" and args.shots != [0]:
-        raise ValueError("Only 0 shot eval is supported for non-open_flamingo models")
-
-    if len(args.trial_seeds) != args.num_trials:
-        raise ValueError("Number of trial seeds must be == number of trials.")
-
-    results = defaultdict(list)
-
-    if args.eval_vqav2:
-        print("Evaluating on VQAv2...")
-
-        # load cached demonstration features for RICES
-        if args.cached_demonstration_features is not None:
-            cached_features = torch.load(
-                f"{args.cached_demonstration_features}/vqav2.pkl", map_location="cpu"
-            )
-        else:
-            cached_features = None
-
-        for shot in args.shots:
-            scores = []
-            for seed, trial in zip(args.trial_seeds, range(args.num_trials)):
-                vqa_score = evaluate_vqa(
-                    args=args,
-                    eval_model=eval_model,
-                    num_shots=shot,
-                    seed=seed,
-                    dataset_name="vqav2",
-                    cached_features=cached_features,
-                )
-                if args.rank == 0 and vqa_score is not None:
-                    print(f"Shots {shot} Trial {trial} VQA score: {vqa_score}")
-                    scores.append(vqa_score)
-
-            if args.rank == 0 and len(scores) > 0:
-                print(f"Shots {shot} Mean VQA score: {np.nanmean(scores)}")
-                results["vqav2"].append(
-                    {
-                        "shots": shot,
-                        "trials": scores,
-                        "mean": np.nanmean(scores),
-                        "stddev": np.nanstd(scores),
-                    }
-                )
-   
-    if args.rank == 0 and args.results_file is not None:
-        with open(args.results_file, "w") as f:
-            json.dump(results, f)
-
 
 
 def evaluate_vqa(
     args: argparse.Namespace,
-    eval_model: BaseEvalModel,
+    eval_model: inferencer,
     seed: int = 42,
     min_generation_length: int = 0,
     max_generation_length: int = 5,
@@ -343,17 +243,7 @@ def evaluate_vqa(
         args.batch_size,
     )
 
-    if args.rices:
-        rices_dataset = RICES(
-            train_dataset,
-            eval_model.device,
-            args.batch_size,
-            cached_features=cached_features,
-            vision_encoder_path=args.rices_vision_encoder_path,
-            vision_encoder_pretrained=args.rices_vision_encoder_pretrained,
-        )
-    else:
-        query_set = utils.get_query_set(train_dataset, args.query_set_size)
+    query_set = utils.get_query_set(train_dataset, args.query_set_size)
 
     utils.random_seed(seed, args.rank)
     predictions = []
@@ -362,12 +252,9 @@ def evaluate_vqa(
         desc=f"Running inference {dataset_name}",
         disable=args.rank != 0,
     ):
-        if args.rices:
-            batch_demo_samples = rices_dataset.find(batch["image"], effective_num_shots)
-        else:
-            batch_demo_samples = utils.sample_batch_demos_from_query_set(
-                query_set, effective_num_shots, len(batch["image"])
-            )
+        batch_demo_samples = utils.sample_batch_demos_from_query_set(
+            query_set, effective_num_shots, len(batch["image"])
+        )
 
         batch_images, batch_text = [], []
         for i in range(len(batch["image"])):
@@ -458,14 +345,14 @@ def evaluate_vqa(
 
         fill_fn(
             f"{dataset_name}results_{random_uuid}.json",
-            f"{dataset_name}-testdev_{eval_model.lm_name}_{num_shots}_{'rices' if args.rices else 'random'}_{seed}.json",
+            f"{dataset_name}-testdev_{eval_model.lm_name}_{num_shots}_random_{seed}.json",
             args.vqav2_final_test_questions_json_path
             if dataset_name == "vqav2"
             else args.vizwiz_test_questions_json_path,
         )
         print(
             "Test-dev results saved to ",
-            f"{dataset_name}-testdev_{eval_model.lm_name}_{num_shots}_{'rices' if args.rices else 'random'}_{seed}.json",
+            f"{dataset_name}-testdev_{eval_model.lm_name}_{num_shots}_random_{seed}.json",
         )
         os.remove(f"{dataset_name}results_{random_uuid}.json")
 
@@ -523,3 +410,80 @@ if __name__ == "__main__":
                             top_p=1.0,
                             do_sample=True)
     print(response)
+
+    args, leftovers = parser.parse_known_args()
+
+    
+    print(args)
+    print(leftovers)
+    model_args = {
+        leftovers[i].lstrip("-"): leftovers[i + 1] for i in range(0, len(leftovers), 2)
+    }
+    inferencer = Inferencer(llama_path=model_args['lm_path'], 
+                            open_flamingo_path=open_flamingo_path, 
+                            finetune_path=model_args['checkpoint_path'])
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(torch.cuda.get_device_name(device))
+    memory_stats =torch.cuda.memory_stats()
+    total_memory = torch.cuda.get_device_properties(device).total_memory
+    available_memory = total_memory - memory_stats["allocated_bytes.all.current"]
+    
+    # Print the result
+    print(f"Available GPU memory: {available_memory / 1024**3:.2f} GB")
+    model_args['device']=device
+    if args.mmgpt:
+        eval_model=module.EvalModel(model_args,pretrained_flam="/content/open_flamingo/checkpoint.pt")
+    else:
+        eval_model = module.EvalModel(model_args)
+
+    # set up distributed evaluation
+    args.local_rank, args.rank, args.world_size = world_info_from_env()
+
+    if args.model != "open_flamingo" and args.shots != [0]:
+        raise ValueError("Only 0 shot eval is supported for non-open_flamingo models")
+
+    if len(args.trial_seeds) != args.num_trials:
+        raise ValueError("Number of trial seeds must be == number of trials.")
+
+    results = defaultdict(list)
+
+    if args.eval_vqav2:
+        print("Evaluating on VQAv2...")
+
+        # load cached demonstration features for RICES
+        if args.cached_demonstration_features is not None:
+            cached_features = torch.load(
+                f"{args.cached_demonstration_features}/vqav2.pkl", map_location="cpu"
+            )
+        else:
+            cached_features = None
+
+        for shot in args.shots:
+            scores = []
+            for seed, trial in zip(args.trial_seeds, range(args.num_trials)):
+                vqa_score = evaluate_vqa(
+                    args=args,
+                    eval_model=inferencer,
+                    num_shots=shot,
+                    seed=seed,
+                    dataset_name="vqav2",
+                    cached_features=cached_features,
+                )
+                if args.rank == 0 and vqa_score is not None:
+                    print(f"Shots {shot} Trial {trial} VQA score: {vqa_score}")
+                    scores.append(vqa_score)
+
+            if args.rank == 0 and len(scores) > 0:
+                print(f"Shots {shot} Mean VQA score: {np.nanmean(scores)}")
+                results["vqav2"].append(
+                    {
+                        "shots": shot,
+                        "trials": scores,
+                        "mean": np.nanmean(scores),
+                        "stddev": np.nanstd(scores),
+                    }
+                )
+   
+    if args.rank == 0 and args.results_file is not None:
+        with open(args.results_file, "w") as f:
+            json.dump(results, f)
