@@ -18,8 +18,8 @@ The **joint training** of visual and language instructions effectively improves 
 To install the package in an existing environment, run
 
 ```bash
-git clone https://github.com/open-mmlab/Multimodal-GPT.git
-cd Multimodal-GPT
+https://github.com/vermaprince17/FloRA.git
+cd FloRA
 pip install -r requirements.txt
 pip install -v -e .
 ```
