@@ -23,11 +23,13 @@ class Inferencer:
             }
         else:
             state_dict = ckpt
-        tuning_config = ckpt.get("tuning_config")
+        tuning_config = ckpt.get("tuning_config").tuning_config
         if tuning_config is None:
             print("tuning_config not found in checkpoint")
         else:
             print("tuning_config found in checkpoint: ", tuning_config)
+            
+        print("TUNING_CONFIG", tuning_config)    
         model, image_processor, tokenizer = create_model_and_transforms(
             model_name="open_flamingo",
             clip_vision_encoder_path="ViT-L-14",
@@ -349,17 +351,19 @@ def build_conversation_demo():
                 state, chatbot, textbox, imagebox, model_inputs,
                 memory_allocated
             ],
+            concurrency_limit=10,
         )
         clear_btn.click(clear, [state],
                         [state, chatbot, textbox, imagebox, model_inputs])
     return demo
 
+import sys
 
 if __name__ == "__main__":
     #llama_path = "checkpoints/HF_LLAMA_7B"
-    llama_path = 'openlm-research/open_llama_3B_V2'
+    llama_path = sys.argv[1] #'openlm-research/open_llama_3B_V2'
     open_flamingo_path = "checkpoints/OpenFlamingo-9B/checkpoint.pt"
-    finetune_path = "checkpoints/mmgpt-lora-v0-release.pt"
+    finetune_path = sys.argv[2]#"checkpoints/mmgpt-lora-v0-release.pt"
 
     inferencer = Inferencer(
         llama_path=llama_path,
@@ -367,7 +371,7 @@ if __name__ == "__main__":
         finetune_path=finetune_path)
     init_memory = str(round(torch.cuda.memory_allocated() / 1024**3, 2)) + 'GB'
     demo = build_conversation_demo()
-    demo.queue(concurrency_count=1)
+    demo.queue()
     IP = "127.0.0.1"
     PORT = 8997
-    demo.launch(server_name=IP, server_port=PORT, share=True)
+    demo.launch(server_name=IP, server_port=PORT, share=True, max_threads=20)

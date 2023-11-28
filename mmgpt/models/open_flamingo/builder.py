@@ -120,6 +120,7 @@ __KNOWN_DECODER_LAYERS_ATTR_NAMES = {
 
 
 def prepare_model_for_tuning(model: nn.Module, config):
+    print("INSIDE prepare_model_for_tuning CONFIG: ", config)
     if config.lora:
         lora_config = LoraConfig(
             r=config.lora_r,
