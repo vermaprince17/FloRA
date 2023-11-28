@@ -59,6 +59,11 @@ conda env create -f environment.yml
     ```bash
     python app.py
     ```
+3. single example inference : (execute command in inference_cmd.txt; Assumes that there is Flamingo ckpts in checkpoints/OpenFlamingo-9B/checkpoint.pt
+
+   python inference.py <path to language ckpts> <path to fine tuned ckpts> <text input> <path to image input> 
+
+   example: python inference.py openlm-research/open_llama_3B_V2 prod/run_LLama-aokvaq-train_ds_8k/ckpt_per_steps/checkpoint_0_2176.pt What is this image content? ./docs/images/demo_image.jpg
 
 ## Examples
 
