@@ -396,9 +396,7 @@ if __name__ == "__main__":
     model_args = {
         leftovers[i].lstrip("-"): leftovers[i + 1] for i in range(0, len(leftovers), 2)
     }
-    inferencer = Inferencer(llama_path=model_args['lm_path'], 
-                            open_flamingo_path=open_flamingo_path, 
-                            finetune_path=model_args['checkpoint_path'])
+    
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(torch.cuda.get_device_name(device))
     memory_stats =torch.cuda.memory_stats()
@@ -407,6 +405,9 @@ if __name__ == "__main__":
     
     # Print the result
     print(f"Available GPU memory: {available_memory / 1024**3:.2f} GB")
+    inferencer = Inferencer(llama_path=model_args['lm_path'], 
+                            open_flamingo_path=open_flamingo_path, 
+                            finetune_path=model_args['checkpoint_path'])
     model_args['device']=device
 
     # set up distributed evaluation
