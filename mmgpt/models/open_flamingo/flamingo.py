@@ -128,7 +128,7 @@ class Flamingo(nn.Module):
         prefix_allowed_tokens_fn=None,
         length_penalty=1.0,
         num_return_sequences=1,
-        do_sample=False,
+        do_sample=True,
         early_stopping=False,
     ):
         """
