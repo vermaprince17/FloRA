@@ -160,7 +160,7 @@ parser.add_argument(
 
 def evaluate_vqa(
     args: argparse.Namespace,
-    eval_model: inferencer,
+    eval_model: Inferencer,
     seed: int = 42,
     min_generation_length: int = 0,
     max_generation_length: int = 5,
@@ -396,19 +396,6 @@ if __name__ == "__main__":
     text_input = sys.argv[3]
     image_input_path = sys.argv[4]
 
-    inferencer = Inferencer(llama_path=llama_path, 
-                            open_flamingo_path=open_flamingo_path, 
-                            finetune_path=finetune_path)
-    
-    response = infer(inferencer,
-                     text_input, 
-                    image_input_path,
-                    max_new_token=512,
-                    num_beams=3,
-                        temperature=1.0,
-                        top_k=20,
-                            top_p=1.0,
-                            do_sample=True)
     print(response)
 
     args, leftovers = parser.parse_known_args()
