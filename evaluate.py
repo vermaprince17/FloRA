@@ -408,10 +408,6 @@ if __name__ == "__main__":
     # Print the result
     print(f"Available GPU memory: {available_memory / 1024**3:.2f} GB")
     model_args['device']=device
-    if args.mmgpt:
-        eval_model=module.EvalModel(model_args,pretrained_flam="/content/open_flamingo/checkpoint.pt")
-    else:
-        eval_model = module.EvalModel(model_args)
 
     # set up distributed evaluation
     args.local_rank, args.rank, args.world_size = world_info_from_env()
