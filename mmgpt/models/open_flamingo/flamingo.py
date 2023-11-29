@@ -162,9 +162,9 @@ class Flamingo(nn.Module):
         self._encode_vision_x(vision_x=vision_x)
 
         output = self.lang_encoder.generate(
-            lang_x,
+            lang_x.to(torch.long),
             attention_mask=attention_mask,
-            # eos_token_id=self.eoc_token_id,
+            eos_token_id=self.eoc_token_id,
             num_beams=num_beams,
             max_new_tokens=max_new_tokens,
             temperature=temperature,
