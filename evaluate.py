@@ -358,8 +358,6 @@ def evaluate_vqa(
 
     return acc
 
-if __name__ == "__main__":
-    main()
 
 def infer(inferencer,
           prompt,
