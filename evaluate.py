@@ -387,7 +387,7 @@ def infer(inferencer,
     return result
 
 if __name__ == "__main__":
-    open_flamingo_path = "/content/checkpoint.pt"
+    open_flamingo_path = "checkpoints/checkpoint.pt"
     args, leftovers = parser.parse_known_args()
 
     
