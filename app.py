@@ -6,6 +6,7 @@ from PIL import Image
 from typing import List
 
 from mmgpt.models.builder import create_model_and_transforms
+from utils import unwrap_model, get_autocast, get_cast_dtype
 
 TEMPLATE = "Below is an instruction that describes a task. Write a response that appropriately completes the request."
 response_split = "### Response:"
@@ -50,6 +51,8 @@ class Inferencer:
         self.model = model
         self.image_processor = image_processor
         self.tokenizer = tokenizer
+        self.autocast = get_autocast("fp32")
+        self.cast_dtype = get_cast_dtype("fp32")
         
 
     def _prepare_images(self, batch: List[List[Image.Image]]) -> torch.Tensor:
