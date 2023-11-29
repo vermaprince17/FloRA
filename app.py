@@ -3,6 +3,7 @@ import os
 import gradio as gr
 import torch
 from PIL import Image
+from typing import List
 
 from mmgpt.models.builder import create_model_and_transforms
 
