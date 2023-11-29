@@ -387,15 +387,7 @@ def infer(inferencer,
     return result
 
 if __name__ == "__main__":
-    llama_path = sys.argv[1] #'openlm-research/open_llama_3B_V2'
     open_flamingo_path = "checkpoints/OpenFlamingo-9B/checkpoint.pt"
-    finetune_path = sys.argv[2]#"checkpoints/mmgpt-lora-v0-release.pt"
-    # Example usage
-    text_input = sys.argv[3]
-    image_input_path = sys.argv[4]
-
-    print(response)
-
     args, leftovers = parser.parse_known_args()
 
     
