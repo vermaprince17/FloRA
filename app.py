@@ -135,7 +135,6 @@ class Inferencer:
                     batch_images,
                     input_ids,
                     attention_mask,
-                    min_new_tokens=min_generation_length,
                     max_new_tokens=max_generation_length,
                     num_beams=num_beams,
                     length_penalty=length_penalty,
